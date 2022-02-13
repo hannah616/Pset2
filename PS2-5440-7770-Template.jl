@@ -180,16 +180,6 @@ md"""
 #### Reaction connectivity array (RCA)
 """
 
-# ╔═╡ 4520fc6e-7305-487e-924d-af22406e6d45
-# c) Compute the reaction connectivity array.
-# Answer: The rank order of connectivity of reactions are v1 = v2 = v3 = v4 (3) > v5 (2) > b1 = b2 = b3 = b4 (1). 
-# Question: Is there a correlation between reaction connectivity and extreme pathway reaction frequency?
-# Answer: The order of extreme pathway reaction frequency is v1 = v2 = b2 = b3 > v3 = v4 = v5 = b1 = b4 which is different. There is no correlation between reaction connectivity and extreme pathway reaction frequency.
-v1 = 1, v2 = 1, v3 = 0.5, v4 = 0.5, v5 = 0.5, b1 = 0.5, b2 = 1, b3 = 1, b4 = 0.5
-begin
-	RCA = transpose(B)*B
-end
-
 # ╔═╡ 267865de-1b5c-4579-861b-c6c46beb4739
 function ingredients(path::String)
 	
@@ -256,6 +246,9 @@ begin
 	
 end
 
+# ╔═╡ c3afd191-e0f4-4a48-9c24-63fd4357f9a4
+P
+
 # ╔═╡ a7d4424e-1cbf-417e-9246-1e722eb99f6b
 reaction_name_array
 
@@ -266,6 +259,16 @@ begin
 	B = S |> binary_stoichiometric_matrix
 	MCA = B*transpose(B)
 	
+end
+
+# ╔═╡ 4520fc6e-7305-487e-924d-af22406e6d45
+# c) Compute the reaction connectivity array.
+# Answer: The rank order of connectivity of reactions are v1 = v2 = v3 = v4 (3) > v5 (2) > b1 = b2 = b3 = b4 (1). 
+# Question: Is there a correlation between reaction connectivity and extreme pathway reaction frequency?
+# Answer: The order of extreme pathway reaction frequency is v1 = v2 = b2 = b3 > v3 = v4 = v5 = b1 = b4 which is different. There is no correlation between reaction connectivity and extreme pathway reaction frequency.
+
+begin
+	RCA = transpose(B)*B
 end
 
 # ╔═╡ ab2bcfd5-3ba7-4388-8a3c-2cb95fba989a
@@ -1281,6 +1284,7 @@ version = "0.9.1+5"
 # ╠═855870ba-7dc5-4dc8-87f5-670452b1739c
 # ╟─6970dab5-16bd-4898-b88d-723cb1b3d89e
 # ╠═97b0763d-dcab-4afa-b660-52e18b3d523f
+# ╠═c3afd191-e0f4-4a48-9c24-63fd4357f9a4
 # ╟─b473b17e-3bf5-4b6c-af24-fe57b5a7e7e9
 # ╠═999ae1fd-5341-4f66-9db2-dec53fa0cd49
 # ╠═a7d4424e-1cbf-417e-9246-1e722eb99f6b
