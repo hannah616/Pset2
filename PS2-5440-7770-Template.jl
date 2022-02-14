@@ -24,32 +24,37 @@ md"""
 begin
 	parameters_dict = Dict{String,Any}()
 	S = [
-		# v1  v2  v3 v4 v5 b1 b2 b3 b4
-		-1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0; #1 Aspartate
-		1.0 -1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0; #2 Argininosuccinate
-		0.0 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0; #3 Fumarate
-		0.0 1.0 -1.0 0.0 -1.0 0.0 0.0 0.0 0.0; #4 Arginine
-		0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 -1.0; #5 Urea
-		0.0 0.0 1.0 -1.0 0.0 0.0 0.0 0.0 0.0; #6 Ornithine
-		-1.0 0.0 0.0 1.0 1.0 0.0 0.0 0.0 0.0; #7 Citrulline
-		0.0 0.0 0.0 -1.0 0.0 1.0 0.0 0.0 0.0;  #8 Carbamoyl Phosphate		
+		# v1  v2  v3 v4 v5 b1 b2 b3 b4 b5 b6	
+		0.0  1.0 -1.0 0.0 -2.0 0.0 0.0 0.0 0.0 0.0 -1.0; #Arginine
+  		1.0 -1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0; #Argininosuccinate
+ 		-1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0; #Aspartate
+  		0.0 0.0 0.0 -1.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0; #CarbamoylPhosphate
+ 		-1.0 0.0 0.0 1.0 2.0 0.0 0.0 0.0 0.0 0.0 0.0; #Citrulline
+  		0.0 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0 0.0; #Fumarate
+  		0.0 0.0 1.0 -1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0; #Ornithine
+  		0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0; #Urea
 	]
 	parameters_dict["S"] = S
 end
 
-# ╔═╡ 855870ba-7dc5-4dc8-87f5-670452b1739c
-#Supplemental Functions from previous lectures
+# ╔═╡ 7124ba18-781a-42e2-9cea-08701b1f5ac7
 begin
-function build_stoichiometric_matrix(reactions::Array{String,1})::Tuple{Array{Float64,2},
-	Array{String,1}, Array{String,1}}
+function build_stoichiometric_matrix(reactions::Array{String,1}; 
+    expand::Bool=false)::Tuple{Array{Float64,2}, Array{String,1}, Array{String,1}}
 
 	# initialize -
 	species_array = Array{String,1}()
 	reaction_array = Array{String,1}()
 	reaction_dictionary_array = Array{Dict{String,Float64},1}()
+
+    # should we expand the reversible reactions?
+    reactions_to_process = reactions;
+    if (expand == true)
+        reactions_to_process = expand_reversible_reactions(reactions);
+    end
 	
 	# first: let's discover the species list -
-	for reaction_string ∈ reactions
+	for reaction_string ∈ reactions_to_process
 
 		# initialize tmp storage -
 		tmp_dictionary = Dict{String,Float64}()
@@ -90,7 +95,7 @@ function build_stoichiometric_matrix(reactions::Array{String,1})::Tuple{Array{Fl
 	sort!(species_array)
 	
 	# we have a *unique* species array, let's initialize some storage for the stoichiometric array
-	S = zeros(length(species_array), length(reactions));
+	S = zeros(length(species_array), length(reactions_to_process));
 
 	# last: fill in the values for stoichiometric coefficents -
 	for (row_index, species_symbol) ∈ enumerate(species_array)
@@ -106,6 +111,43 @@ function build_stoichiometric_matrix(reactions::Array{String,1})::Tuple{Array{Fl
 	# return -
 	return (S, species_array, reaction_array)
 end
+
+function extract_species_dictionary(reaction_phrase::String;
+	direction::Float64 = -1.0)::Dict{String,Float64}
+
+	# initialize -
+	species_symbol_dictionary = Dict{String,Float64}()
+	
+	# ok, do we hve a +?
+	component_array = split(reaction_phrase,'+');
+	for component ∈ component_array
+
+		if (contains(component,'*') == true)
+			
+			tmp_array = split(component,'*')
+			st_coeff = direction*parse(Float64,tmp_array[1])
+			species_symbol = String(tmp_array[2])
+
+			# don't cache the ∅ -
+			if (species_symbol != "∅" && species_symbol != "[]")
+				species_symbol_dictionary[species_symbol] = st_coeff
+			end
+		else 
+			
+			# strip any spaces -
+			species_symbol = component |> lstrip |> rstrip
+
+			# don't cache the ∅ -
+			if (species_symbol != "∅" && species_symbol != "[]")
+				species_symbol_dictionary[species_symbol] = direction*1.0
+			end
+		end
+	end
+
+	# return -
+	return species_symbol_dictionary
+end
+
 function binary_stoichiometric_matrix(matrix::Array{Float64,2})::Array{Int64,2}
 
 	# initialize -
@@ -127,42 +169,39 @@ function binary_stoichiometric_matrix(matrix::Array{Float64,2})::Array{Int64,2}
 	# return -
 	return B
 end
-function extract_species_dictionary(reaction_phrase::String;
-	direction::Float64 = -1.0)::Dict{String,Float64}
 
-	# initialize -
-	species_symbol_dictionary = Dict{String,Float64}()
-	
-	# ok, do we hve a +?
-	component_array = split(reaction_phrase,'+');
-	for component ∈ component_array
+function expand_reversible_reactions(reaction_array::Array{String,1})::Array{String,1}
 
-		if (contains(component,'*') == true)
-			
-			tmp_array = split(component,'*')
-			st_coeff = direction*parse(Float64,tmp_array[1])
-			species_symbol = String(tmp_array[2])
+    # initialize -
+    processed_reaction_string_array = Array{String,1}()
 
-			# don't cache the ∅ -
-			if (species_symbols != "∅")
-				species_symbol_dictionary[species_symbol] = st_coeff
-			end
-		else 
-			
-			# strip any spaces -
-			species_symbol = component |> lstrip |> rstrip
+    # main loop -
+    for reaction_string ∈ reaction_array
+        
+        # chop up the reaction string -
+	    reaction_component_array = split(reaction_string,',');
 
-			# don't cache the ∅ -
-			if (species_symbol != "∅")
-				species_symbol_dictionary[species_symbol] = direction*1.0
-			end
-		end
-	end
+        # get components -
+        rname = reaction_component_array[1]
+        forward_phrase = reaction_component_array[2]
+        reverse_phrase = reaction_component_array[3]
+        is_reversible = parse(Bool, reaction_component_array[4])
+    
+        if (is_reversible == true)
 
-	# return -
-	return species_symbol_dictionary
+            # build new reaction strings (forward, and reverse)
+            new_string_forward = "F$(rname),$(forward_phrase),$(reverse_phrase),false"
+            new_string_reverse = "R$(rname),$(reverse_phrase),$(forward_phrase),false"
+            push!(processed_reaction_string_array,new_string_forward)
+            push!(processed_reaction_string_array,new_string_reverse)
+        else
+            push!(processed_reaction_string_array, reaction_string)
+        end
+    end
+
+    # return -
+    return processed_reaction_string_array
 end
-
 end
 
 # ╔═╡ 6970dab5-16bd-4898-b88d-723cb1b3d89e
@@ -217,9 +256,9 @@ end
 
 # ╔═╡ 97b0763d-dcab-4afa-b660-52e18b3d523f
 #b) Question: How many extreme pathways (rows of P) did you get, and how many produced Urea? 
-#Answer: There are 2 extreme pathways. Only one produced urea.
+#Answer: There are 4 extreme pathways. Only one produced urea.
 #Question: Compute the reaction frequency for each reaction.
-#Answer: v1 = 1, v2 = 1, v3 = 0.5, v4 = 0.5, v5 = 0.5, b1 = 0.5, b2 = 1, b3 = 1, b4 = 0.5
+#Answer: v1 = 0.75, v2 = 0.75, v3 = 0.25, v4 = 0.5, v5 = 0.25, b1 = 0.5, b2 = 0.75, b3 = 0.75, b4 = 0.25, b5 = 0.25, b6 = 0.25
 
 begin
 	reaction_array = Array{String,1}()
@@ -228,11 +267,14 @@ begin
 	push!(reaction_array,"v2,Argininosuccinate,Fumarate+Arginine,false")
 	push!(reaction_array,"v3,Arginine,Urea+Ornithine,false")
 	push!(reaction_array,"v4,Ornithine+CarbamoylPhosphate,Citrulline,false")
-	push!(reaction_array,"v5,Arginine,Citrulline,true")
+	push!(reaction_array,"v5,2*Arginine,2*Citrulline,true")
 	push!(reaction_array,"b1,∅,CarbamoylPhosphate,false")
 	push!(reaction_array,"b2,∅,Aspartate,false")
 	push!(reaction_array,"b3,Fumarate,∅,false")
 	push!(reaction_array,"b4,Urea,∅,false")
+	push!(reaction_array,"b5,Ornithine,∅,true")
+	push!(reaction_array,"b6,Arginine,∅,true")
+
 	
 	(S1, species_array, reaction_name_array) = build_stoichiometric_matrix(reaction_array);
 	PM = lib.expa(S1)
@@ -246,15 +288,13 @@ begin
 	
 end
 
-# ╔═╡ c3afd191-e0f4-4a48-9c24-63fd4357f9a4
+# ╔═╡ 00b3048a-2a5e-48be-a144-8c48124d8628
 P
-
-# ╔═╡ a7d4424e-1cbf-417e-9246-1e722eb99f6b
-reaction_name_array
 
 # ╔═╡ 999ae1fd-5341-4f66-9db2-dec53fa0cd49
 # c) Compute the metabolite connectivity array. 
-#Answer: The rank order of connectivity of metabolites are CarbamoylPhosphate = Ornithine (3) > Arginine = Argininosuccinate = Aspartate = Citrulline = Fumarate = Urea (2)
+#Answer: The rank order of connectivity of metabolites are Arginine (4) > Citrulline = Ornithine (3) > Argininosuccinate = Aspartate = CarbomylPhosphate = Fumarate = Urea (2)
+
 begin
 	B = S |> binary_stoichiometric_matrix
 	MCA = B*transpose(B)
@@ -263,9 +303,10 @@ end
 
 # ╔═╡ 4520fc6e-7305-487e-924d-af22406e6d45
 # c) Compute the reaction connectivity array.
-# Answer: The rank order of connectivity of reactions are v1 = v2 = v3 = v4 (3) > v5 (2) > b1 = b2 = b3 = b4 (1). 
+# Answer: The rank order of connectivity of reactions are v1 = v2 = v3 = v4 (3) > v5 (2) > b1 = b2 = b3 = b4 = b5 = b6 (1). 
 # Question: Is there a correlation between reaction connectivity and extreme pathway reaction frequency?
-# Answer: The order of extreme pathway reaction frequency is v1 = v2 = b2 = b3 > v3 = v4 = v5 = b1 = b4 which is different. There is no correlation between reaction connectivity and extreme pathway reaction frequency.
+# Answer: The order of extreme pathway reaction frequency is v1 = v2 = b2 = b3 > v4 = b1 > v3 = v5 = b4 = b5 = b6 which is different. There is no correlation between reaction connectivity and extreme pathway reaction frequency. 
+#Since extreme pathway reaction frequency corresponds to the frequency that a reaction appears in each independent extreme pathway while the reaction connectivity array corresponds to the connectedness of the reaction space in a metabolic network, there would be no correlation between reaction connectivity and extreme pathway reaction frequency.
 
 begin
 	RCA = transpose(B)*B
@@ -1281,13 +1322,12 @@ version = "0.9.1+5"
 # ╟─7057c8e4-9e94-4a28-a885-07f5c96ebe39
 # ╟─87a183bc-3857-4189-8103-18c46ff3245d
 # ╠═5338451e-3c4b-4030-bbbb-42eaf4209a89
-# ╠═855870ba-7dc5-4dc8-87f5-670452b1739c
+# ╠═7124ba18-781a-42e2-9cea-08701b1f5ac7
+# ╠═00b3048a-2a5e-48be-a144-8c48124d8628
 # ╟─6970dab5-16bd-4898-b88d-723cb1b3d89e
 # ╠═97b0763d-dcab-4afa-b660-52e18b3d523f
-# ╠═c3afd191-e0f4-4a48-9c24-63fd4357f9a4
 # ╟─b473b17e-3bf5-4b6c-af24-fe57b5a7e7e9
 # ╠═999ae1fd-5341-4f66-9db2-dec53fa0cd49
-# ╠═a7d4424e-1cbf-417e-9246-1e722eb99f6b
 # ╟─b7e5d1a6-57ed-4d09-a039-a4bd12386367
 # ╠═4520fc6e-7305-487e-924d-af22406e6d45
 # ╠═67f5db98-88d0-11ec-27ac-b57538a166f4
