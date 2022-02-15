@@ -24,15 +24,23 @@ md"""
 begin
 	parameters_dict = Dict{String,Any}()
 	S = [
-		# v1  v2  v3 v4 v5 b1 b2 b3 b4 b5 b6	
-		0.0  1.0 -1.0 0.0 -2.0 0.0 0.0 0.0 0.0 0.0 -1.0; #Arginine
-  		1.0 -1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0; #Argininosuccinate
- 		-1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0; #Aspartate
-  		0.0 0.0 0.0 -1.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0; #CarbamoylPhosphate
- 		-1.0 0.0 0.0 1.0 2.0 0.0 0.0 0.0 0.0 0.0 0.0; #Citrulline
-  		0.0 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0 0.0; #Fumarate
-  		0.0 0.0 1.0 -1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0; #Ornithine
-  		0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0; #Urea
+   # v1  v2  v3  v4  fv5  rv5  b1 b2  b3  b4  fb5 rb5 fb6  rb6
+	0.0 1.0 -1.0 0.0 -2.0 2.0 0.0 0.0 0.0 0.0 0.0 0.0 -1.0 1.0;
+		#Arginine
+    1.0 -1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
+		#Argininosuccinate
+ 	-1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0;
+		#Aspartate
+  	0.0 0.0 0.0 -1.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
+		#CarbamoylPhosphate
+	-1.0 0.0 0.0 1.0 2.0 -2.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
+		#Citrulline
+  	0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0 0.0 0.0 0.0;
+		#Fumarate
+	0.0 0.0 1.0 -1.0 0.0 0.0 0.0 0.0 0.0 0.0 -1.0 1.0 0.0 0.0;
+		#Ornithine
+ 	0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0 0.0 0.0;
+		#Urea
 	]
 	parameters_dict["S"] = S
 end
@@ -256,9 +264,9 @@ end
 
 # ╔═╡ 97b0763d-dcab-4afa-b660-52e18b3d523f
 #b) Question: How many extreme pathways (rows of P) did you get, and how many produced Urea? 
-#Answer: There are 4 extreme pathways. Only one produced urea.
+#Answer: There are 9 extreme pathways. Three produced urea.
 #Question: Compute the reaction frequency for each reaction.
-#Answer: v1 = 0.75, v2 = 0.75, v3 = 0.25, v4 = 0.5, v5 = 0.25, b1 = 0.5, b2 = 0.75, b3 = 0.75, b4 = 0.25, b5 = 0.25, b6 = 0.25
+#Answer: v1 = 3/9 = 0.33, v2 = 3/9 = 0.33, v3 = 3/9 = 0.33, v4 = 4/9 = 0.44, Fv5 = 2/9 = 0.22, Rv5= 3/9 = 0.33, b1 = 4/9 = 0.44, b2 = 3/9 = 0.33, b3 = 3/9 = 0.33, b4 = 3/9 = 0.33, Fb5 = 2/9 = 0.22, Rb5 = 3/9 = 0.33, Fb6 = 3/9 = 0.33, Rb6 = 2/9 = 0.22
 
 begin
 	reaction_array = Array{String,1}()
@@ -276,7 +284,7 @@ begin
 	push!(reaction_array,"b6,Arginine,∅,true")
 
 	
-	(S1, species_array, reaction_name_array) = build_stoichiometric_matrix(reaction_array);
+	(S1, species_array, reaction_name_array) = build_stoichiometric_matrix(reaction_array; expand = true);
 	PM = lib.expa(S1)
 	
 	
@@ -288,24 +296,21 @@ begin
 	
 end
 
-# ╔═╡ 00b3048a-2a5e-48be-a144-8c48124d8628
-P
-
 # ╔═╡ 999ae1fd-5341-4f66-9db2-dec53fa0cd49
 # c) Compute the metabolite connectivity array. 
-#Answer: The rank order of connectivity of metabolites are Arginine (4) > Citrulline = Ornithine (3) > Argininosuccinate = Aspartate = CarbomylPhosphate = Fumarate = Urea (2)
+#Answer: The rank order of connectivity of metabolites are Arginine (6) > Citrulline = Ornithine (4) > Argininosuccinate = Aspartate = CarbomylPhosphate = Fumarate = Urea (2)
 
 begin
-	B = S |> binary_stoichiometric_matrix
+	B = S1 |> binary_stoichiometric_matrix
 	MCA = B*transpose(B)
 	
 end
 
 # ╔═╡ 4520fc6e-7305-487e-924d-af22406e6d45
 # c) Compute the reaction connectivity array.
-# Answer: The rank order of connectivity of reactions are v1 = v2 = v3 = v4 (3) > v5 (2) > b1 = b2 = b3 = b4 = b5 = b6 (1). 
+# Answer: The rank order of connectivity of reactions are v1 = v2 = v3 = v4 (3) > Fv5 = Rv5 (2) > b1 = b2 = b3 = b4 = Fb5 = Rb5 = Fb6 = Rb6 (1). 
 # Question: Is there a correlation between reaction connectivity and extreme pathway reaction frequency?
-# Answer: The order of extreme pathway reaction frequency is v1 = v2 = b2 = b3 > v4 = b1 > v3 = v5 = b4 = b5 = b6 which is different. There is no correlation between reaction connectivity and extreme pathway reaction frequency. 
+# Answer: The order of extreme pathway reaction frequency is v4 = b1 > v1 = v2 = v3 = Rv5 = b2 = b3 = b4 = Rb5 = Fb6 > Fv5 = Fb5 = Rb6 which is different. There is no correlation between reaction connectivity and extreme pathway reaction frequency. 
 #Since extreme pathway reaction frequency corresponds to the frequency that a reaction appears in each independent extreme pathway while the reaction connectivity array corresponds to the connectedness of the reaction space in a metabolic network, there would be no correlation between reaction connectivity and extreme pathway reaction frequency.
 
 begin
@@ -1323,7 +1328,6 @@ version = "0.9.1+5"
 # ╟─87a183bc-3857-4189-8103-18c46ff3245d
 # ╠═5338451e-3c4b-4030-bbbb-42eaf4209a89
 # ╠═7124ba18-781a-42e2-9cea-08701b1f5ac7
-# ╠═00b3048a-2a5e-48be-a144-8c48124d8628
 # ╟─6970dab5-16bd-4898-b88d-723cb1b3d89e
 # ╠═97b0763d-dcab-4afa-b660-52e18b3d523f
 # ╟─b473b17e-3bf5-4b6c-af24-fe57b5a7e7e9
